@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Layered Emotion Wheel - Lighter Muted Teal "Bad"</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .emotion-segment {
+            transition: transform 0.15s ease-out, opacity 0.15s ease-out, stroke-width 0.15s ease-out;
+            cursor: pointer;
+            stroke: #fff; 
+            stroke-width: 0.75px; 
+        }
+        .emotion-segment:hover {
+            opacity: 0.85; 
+        }
+        .emotion-segment.selected-tertiary {
+            /* stroke color will be set dynamically via JS */
+            stroke-width: 3px !important; 
+            opacity: 1;
+        }
+        .emotion-text-label { 
+            font-weight: 500;
+            pointer-events: none;
+            fill: #1a202c; 
+            transition: font-size 0.1s ease-out;
+            text-anchor: middle;
+            dominant-baseline: central; 
+        }
+        .core-text { font-size: 12.5px; font-weight: bold; } 
+        .secondary-text { font-size: 9px; } 
+        .tertiary-text { font-size: 7.5px; } 
+
+        .core-text.with-count { font-size: 11.5px; }
+        .secondary-text.with-count { font-size: 8.5px; } 
+
+        .emotion-segment.grayed-out {
+            opacity: 0.3 !important; 
+            fill: #d1d5db !important; 
+        }
+        .emotion-text-label.grayed-out { 
+            opacity: 0.4 !important;
+            fill: #6b7280 !important; 
+        }
+
+        #hover-info-panel h2 { line-height: 1.2; }
+
+        #next-step-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        #reset-all-text-button { 
+            /* Tailwind classes are applied directly in HTML */
+        }
+
+
+        @media (max-width: 768px) { 
+            .core-text { font-size: 9px; } 
+            .secondary-text { font-size: 7.5px; } 
+            .tertiary-text { font-size: 6.5px; } 
+            .core-text.with-count { font-size: 8.5px; }
+            .secondary-text.with-count { font-size: 7px; } 
+
+            #emotion-wheel-container { min-height: 280px; } 
+            #hover-info-panel h2 { font-size: 1.05rem; }
+            #hover-info-panel p { font-size: 0.75rem; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-100 to-sky-100 min-h-screen flex flex-col items-center justify-center p-2 md:p-4 selection:bg-sky-300 selection:text-sky-900">
+
+    <div class="bg-white shadow-2xl rounded-xl p-4 md:p-8 w-full max-w-5xl">
+        <header class="text-center mb-6 md:mb-8">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-700">Interactive Emotion Wheel</h1>
+            <p id="header-subtitle" class="text-slate-500 mt-1 md:mt-2 text-sm md:text-base">Hover over an emotion to see details. Click an outer emotion to select. Right-click to gray out.</p>
+        </header>
+
+        <div id="main-content-area" class="flex flex-col lg:flex-row gap-6 md:gap-8 items-center lg:items-start">
+            <div id="emotion-wheel-container" class="w-full lg:w-2/3 flex justify-center items-center">
+                <svg id="emotion-wheel" viewBox="0 0 600 600" class="w-full max-w-xl md:max-w-2xl h-auto rounded-full"></svg>
+            </div>
+
+            <div id="controls-and-info" class="w-full lg:w-1/3 mt-4 lg:mt-0 flex flex-col space-y-4">
+                <div id="hover-info-panel" class="p-4 bg-slate-50 rounded-lg shadow min-h-[120px]">
+                    <h2 id="hover-emotion-name" class="text-xl font-semibold text-slate-700 mb-1">Hover over the wheel</h2>
+                    <p id="hover-emotion-definition" class="text-sm text-slate-600">Details will appear here.</p>
+                </div>
+                <button id="next-step-button" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150">
+                    Review Selected Feelings
+                </button>
+                <div class="pt-4 text-center"> 
+                     <span id="reset-all-text-button" class="text-sm text-red-600 hover:text-red-800 hover:underline cursor-pointer transition-colors duration-150">
+                        Reset all selections
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div id="summary-view" class="hidden mt-8 p-6 bg-sky-50 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold text-sky-700 mb-4">Your Selected Feelings</h2>
+            <div id="selected-summary-list" class="mb-6 space-y-2"></div>
+            <h3 class="text-xl font-semibold text-sky-600 mb-3">Journal Prompts to Consider</h3>
+            <ul id="journal-prompts-list" class="list-disc list-inside text-slate-700 space-y-1 mb-6"></ul>
+            <div class="mt-6 pt-6 border-t border-slate-200">
+                <h3 class="text-xl font-semibold text-sky-600 mb-3">Further Exploration</h3>
+                <button id="gemini-chat-button" class="w-full md:w-auto bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg shadow transition-colors duration-150">
+                    Chat with Gemini (Placeholder)
+                </button>
+            </div>
+            <button id="back-to-wheel-button" class="mt-8 w-full bg-slate-500 hover:bg-slate-600 text-white font-semibold py-2.5 px-4 rounded-lg shadow transition-colors duration-150">
+                Back to Emotion Wheel
+            </button>
+        </div>
+        
+        <footer class="text-center mt-8 md:mt-10 text-xs md:text-sm text-slate-400">
+            <p>Emotion data inspired by various psychological models. Text rendering on wheel is approximate.</p>
+            <p class="mt-1">Code developed with assistance from Google's AI, Gemini.</p> 
+        </footer>
+    </div>
+
+    <script>
+    // Emotion data based on the provided image
+    const emotionsData = { // Ensure this is the only declaration of emotionsData
+        "Happy": { 
+            color: "#FDEE6C", definition: "Feeling or showing pleasure or contentment.",
+            secondaryEmotions: [
+                { name: "Playful", color: "#FEF59A", definition: "Fond of games and amusement.", tertiaryEmotions: [{ name: "Aroused", definition: "Stirred to action or excitement." }, { name: "Cheeky", definition: "Impudently humorous." }] },
+                { name: "Content", color: "#FEF59A", definition: "In a state of peaceful happiness.", tertiaryEmotions: [{ name: "Free", definition: "Not under control of another." }, { name: "Joyful", definition: "Feeling great pleasure." }] },
+                { name: "Interested", color: "#FEF59A", definition: "Showing curiosity about something.", tertiaryEmotions: [{ name: "Curious", definition: "Eager to know or learn." }, { name: "Inquisitive", definition: "Given to inquiry." }] },
+                { name: "Proud", color: "#FEF59A", definition: "Deep pleasure from achievements.", tertiaryEmotions: [{ name: "Successful", definition: "Accomplishing an aim." }, { name: "Confident", definition: "Feeling self-assurance." }] },
+                { name: "Accepted", color: "#FEF59A", definition: "Seen as suitable or normal.", tertiaryEmotions: [{ name: "Respected", definition: "Admired deeply." }, { name: "Valued", definition: "Considered important." }] },
+                { name: "Powerful", color: "#FEF59A", definition: "Having great power or strength.", tertiaryEmotions: [{ name: "Courageous", definition: "Not deterred by danger." }, { name: "Creative", definition: "Imaginative and inventive." }] },
+                { name: "Peaceful", color: "#FEF59A", definition: "Free from disturbance.", tertiaryEmotions: [{ name: "Loving", definition: "Feeling deep affection." }, { name: "Thankful", definition: "Expressing gratitude." }] },
+                { name: "Trusting", color: "#FEF59A", definition: "Believing in reliability.", tertiaryEmotions: [{ name: "Sensitive", definition: "Quick to detect changes." }, { name: "Intimate", definition: "Close familiarity." }] },
+                { name: "Optimistic", color: "#FEF59A", definition: "Hopeful about the future.", tertiaryEmotions: [{ name: "Hopeful", definition: "Feeling expectation." }, { name: "Inspired", definition: "Mentally stimulated." }] },
+            ]
+        },
+        "Surprised": { 
+            color: "#C59CD4", definition: "Feeling astonishment or wonder.",
+            secondaryEmotions: [
+                { name: "Startled", color: "#D8B9E2", definition: "Sudden shock or alarm.", tertiaryEmotions: [{ name: "Shocked", definition: "Disturbed by an event." }, { name: "Dismayed", definition: "Distress from unexpected." }] },
+                { name: "Confused", color: "#D8B9E2", definition: "Unable to think clearly.", tertiaryEmotions: [{ name: "Disillusioned", definition: "Disappointment in something." }, { name: "Perplexed", definition: "Completely baffled." }] },
+                { name: "Amazed", color: "#D8B9E2", definition: "Greatly surprised.", tertiaryEmotions: [{ name: "Astonished", definition: "Greatly surprised or impressed." }, { name: "Awe", definition: "Reverential respect." }] },
+                { name: "Excited", color: "#D8B9E2", definition: "Very enthusiastic and eager.", tertiaryEmotions: [{ name: "Eager", definition: "Strongly wanting to do." }, { name: "Energetic", definition: "Showing great activity." }] },
+            ]
+        },
+         "Bad": { 
+            color: "#90A6A6", definition: "Feeling generally unwell or negative.", // Lighter Muted Teal/Blue-Gray
+            secondaryEmotions: [
+                { name: "Bored", color: "#B7CCCC", definition: "Weary from lack of interest.", tertiaryEmotions: [{ name: "Indifferent", definition: "No particular interest." }, { name: "Apathetic", definition: "Lack of concern." }] },
+                { name: "Busy", color: "#B7CCCC", definition: "Having a great deal to do.", tertiaryEmotions: [{ name: "Pressured", definition: "Feeling coerced." }, { name: "Rushed", definition: "Done too quickly." }] },
+                { name: "Stressed", color: "#B7CCCC", definition: "Feeling worried or unable to relax.", tertiaryEmotions: [{ name: "Overwhelmed", definition: "Burdened with too much." }, { name: "Out of control", definition: "No longer manageable." }] },
+                { name: "Tired", color: "#B7CCCC", definition: "In need of sleep or rest.", tertiaryEmotions: [{ name: "Sleepy", definition: "Ready to fall asleep." }, { name: "Unfocussed", definition: "Not concentrating." }] },
+            ]
+        },
+        "Fearful": { 
+            color: "#FBB86F", definition: "Feeling afraid or apprehensive.",
+            secondaryEmotions: [
+                { name: "Scared", color: "#FCCDA1", definition: "Afraid; filled with fear.", tertiaryEmotions: [{ name: "Helpless", definition: "Unable to defend oneself." }, { name: "Frightened", definition: "Afraid or anxious." }] },
+                { name: "Anxious", color: "#FCCDA1", definition: "Experiencing worry or unease.", tertiaryEmotions: [{ name: "Overwhelmed", definition: "Feeling buried." }, { name: "Worried", definition: "Anxious about problems." }] },
+                { name: "Insecure", color: "#FCCDA1", definition: "Not confident or assured.", tertiaryEmotions: [{ name: "Inadequate", definition: "Lacking quality." }, { name: "Inferior", definition: "Lower in rank or status." }] },
+                { name: "Weak", color: "#FCCDA1", definition: "Lacking strength.", tertiaryEmotions: [{ name: "Worthless", definition: "Without value." }, { name: "Insignificant", definition: "Too small to matter." }] },
+                { name: "Rejected", color: "#FCCDA1", definition: "Dismissed as inadequate.", tertiaryEmotions: [{ name: "Excluded", definition: "Denied access." }, { name: "Persecuted", definition: "Subjected to hostility." }] },
+                { name: "Threatened", color: "#FCCDA1", definition: "Feeling vulnerable to harm.", tertiaryEmotions: [{ name: "Nervous", definition: "Easily agitated." }, { name: "Exposed", definition: "Made vulnerable." }] },
+            ]
+        },
+        "Angry": { 
+            color: "#EE7B6E", definition: "Having a strong feeling of annoyance.",
+            secondaryEmotions: [
+                { name: "Let down", color: "#F4A79F", definition: "Disappointed by someone.", tertiaryEmotions: [{ name: "Betrayed", definition: "Deceived by someone trusted." }, { name: "Resentful", definition: "Bitterness at unfairness." }] },
+                { name: "Humiliated", color: "#F4A79F", definition: "Made to feel ashamed.", tertiaryEmotions: [{ name: "Disrespected", definition: "Not treated with respect." }, { name: "Ridiculed", definition: "Subjected to mockery." }] },
+                { name: "Bitter", color: "#F4A79F", definition: "Angry due to bad experiences.", tertiaryEmotions: [{ name: "Indignant", definition: "Anger at unfairness." }, { name: "Violated", definition: "Treated with disrespect." }] },
+                { name: "Mad", color: "#F4A79F", definition: "Very angry.", tertiaryEmotions: [{ name: "Furious", definition: "Extremely angry." }, { name: "Jealous", definition: "Envious of others." }] },
+                { name: "Aggressive", color: "#F4A79F", definition: "Ready to attack or confront.", tertiaryEmotions: [{ name: "Provoked", definition: "Stirred to anger." }, { name: "Hostile", definition: "Unfriendly; antagonistic." }] },
+                { name: "Frustrated", color: "#F4A79F", definition: "Annoyed by inability to achieve.", tertiaryEmotions: [{ name: "Infuriated", definition: "Made extremely angry." }, { name: "Annoyed", definition: "Slightly angry." }] },
+            ]
+        },
+        "Disgusted": { 
+            color: "#73B9A1", definition: "Feeling revulsion or strong disapproval.",
+            secondaryEmotions: [
+                { name: "Disapproving", color: "#9DCFBD", definition: "Expressing unfavorable opinion.", tertiaryEmotions: [{ name: "Judgmental", definition: "Overly critical." }, { name: "Critical", definition: "Expressing adverse comments." }, { name: "Sceptical", definition: "Not easily convinced." }, { name: "Dismissive", definition: "Feeling something is unworthy."}] },
+                { name: "Disappointed", color: "#9DCFBD", definition: "Sad by failure of hopes.", tertiaryEmotions: [{ name: "Appalled", definition: "Greatly dismayed." }, { name: "Embarrassed", definition: "Feeling self-conscious." }] }, 
+                { name: "Awful", color: "#9DCFBD", definition: "Very bad or unpleasant.", tertiaryEmotions: [{ name: "Nauseated", definition: "Feeling about to vomit." }, { name: "Revolted", definition: "Feeling intense disgust." }] },
+                { name: "Repelled", color: "#9DCFBD", definition: "Driven back or away.", tertiaryEmotions: [{ name: "Horrified", definition: "Filled with horror." }, { name: "Detestable", definition: "Deserving intense dislike." }, { name: "Hesitant", definition: "Tentative or unsure." }] },
+            ]
+        },
+        "Sad": { 
+            color: "#6CA9DE", definition: "Feeling or showing sorrow or unhappiness.",
+            secondaryEmotions: [
+                { name: "Hurt", color: "#9CC2E6", definition: "Feeling emotional pain.", tertiaryEmotions: [{ name: "Embarrassed", definition: "Feeling self-conscious." }, { name: "Disappointed", definition: "Sad by unmet hopes." }] },
+                { name: "Depressed", color: "#9CC2E6", definition: "In a state of unhappiness.", tertiaryEmotions: [{ name: "Inferior", definition: "Lower in rank." }, { name: "Empty", definition: "Containing nothing." }] },
+                { name: "Guilty", color: "#9CC2E6", definition: "Responsible for wrongdoing.", tertiaryEmotions: [{ name: "Ashamed", definition: "Embarrassed by actions." }, { name: "Remorseful", definition: "Deep regret for wrong." }] },
+                { name: "Despair", color: "#9CC2E6", definition: "The complete loss or absence of hope.", tertiaryEmotions: [{ name: "Grief", definition: "Deep sorrow from loss." }, { name: "Powerless", definition: "Without ability to prevent." }] }, 
+                { name: "Vulnerable", color: "#9CC2E6", definition: "Susceptible to harm.", tertiaryEmotions: [{ name: "Fragile", definition: "Easily broken or damaged." }, { name: "Victimised", definition: "Treated cruelly." }] },
+                { name: "Lonely", color: "#9CC2E6", definition: "Sad from lack of company.", tertiaryEmotions: [{ name: "Isolated", definition: "Minimal contact with others." }, { name: "Abandoned", definition: "Having been deserted." }] },
+            ]
+        }
+    };
+    const coreEmotionsOrder = ["Happy", "Surprised", "Bad", "Fearful", "Angry", "Disgusted", "Sad"];
+
+
+    const svgNS = "http://www.w3.org/2000/svg";
+    const wheelSvg = document.getElementById('emotion-wheel');
+    const centerX = 300; 
+    const centerY = 300;
+    const radiusCore = 90;       
+    const radiusSecondary = 190; 
+    const radiusTertiary = 290;  
+    
+    const hoverEmotionNameEl = document.getElementById('hover-emotion-name');
+    const hoverEmotionDefinitionEl = document.getElementById('hover-emotion-definition');
+    const nextStepButton = document.getElementById('next-step-button');
+    const resetAllTextButton = document.getElementById('reset-all-text-button'); 
+    const mainContentArea = document.getElementById('main-content-area');
+    const summaryView = document.getElementById('summary-view');
+    const selectedSummaryList = document.getElementById('selected-summary-list');
+    const journalPromptsList = document.getElementById('journal-prompts-list');
+    const backToWheelButton = document.getElementById('back-to-wheel-button');
+    const geminiChatButton = document.getElementById('gemini-chat-button');
+    const headerSubtitle = document.getElementById('header-subtitle');
+
+    let selectedTertiaryEmotions = [];
+    let grayedOutEmotions = new Set(); 
+    let hoverDebounceTimeout; 
+    const HOVER_DEBOUNCE_DELAY = 150; 
+    let lastValidHoverDetails = null; 
+
+    // --- Color Manipulation Helpers ---
+    function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
+    }
+
+    function componentToHex(c) {
+        const hex = c.toString(16);
+        return hex.length == 1 ? "0" + hex : hex;
+    }
+
+    function rgbToHex(r, g, b) {
+        return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+    }
+
+    function adjustColor(hexColor, darkenFactor = 0.5, desaturateFactor = 0.3) {
+        const rgb = hexToRgb(hexColor);
+        if (!rgb) return hexColor; 
+
+        let { r, g, b } = rgb;
+
+        r = Math.max(0, Math.floor(r * darkenFactor));
+        g = Math.max(0, Math.floor(g * darkenFactor));
+        b = Math.max(0, Math.floor(b * darkenFactor));
+
+        const gray = Math.floor((r + g + b) / 3);
+        r = Math.floor(r * (1 - desaturateFactor) + gray * desaturateFactor);
+        g = Math.floor(g * (1 - desaturateFactor) + gray * desaturateFactor);
+        b = Math.floor(b * (1 - desaturateFactor) + gray * desaturateFactor);
+        
+        r = Math.max(0, Math.min(255, r));
+        g = Math.max(0, Math.min(255, g));
+        b = Math.max(0, Math.min(255, b));
+
+        return rgbToHex(r, g, b);
+    }
+
+    function getTertiaryChildrenKeys(level, coreName, secondaryName = null) {
+        const keys = [];
+        const coreEmotion = emotionsData[coreName];
+        if (!coreEmotion) return keys;
+
+        if (level === 'core') {
+            coreEmotion.secondaryEmotions.forEach(sec => {
+                if (sec.tertiaryEmotions) { 
+                    sec.tertiaryEmotions.forEach(tert => {
+                        keys.push(`${coreName}-${sec.name}-${tert.name}`);
+                    });
+                }
+            });
+        } else if (level === 'secondary') {
+            const secEmotion = coreEmotion.secondaryEmotions.find(s => s.name === secondaryName);
+            if (secEmotion && secEmotion.tertiaryEmotions) { 
+                secEmotion.tertiaryEmotions.forEach(tert => {
+                    keys.push(`${coreName}-${secondaryName}-${tert.name}`);
+                });
+            }
+        }
+        return keys;
+    }
+
+
+    function isEffectivelyGrayedOut(level, coreName, secondaryName = null, tertiaryName = null) {
+        if (level === 'tertiary') {
+            return grayedOutEmotions.has(`${coreName}-${secondaryName}-${tertiaryName}`);
+        }
+        if (level === 'secondary') {
+            const children = getTertiaryChildrenKeys('secondary', coreName, secondaryName);
+            if (children.length === 0) return false; 
+            return children.every(key => grayedOutEmotions.has(key));
+        }
+        if (level === 'core') {
+            const children = getTertiaryChildrenKeys('core', coreName);
+            if (children.length === 0) return false;
+            return children.every(key => grayedOutEmotions.has(key));
+        }
+        return false;
+    }
+    
+    function redrawWheelWithCurrentStates() {
+        const currentValidSelectionsData = selectedTertiaryEmotions
+            .filter(sel => !grayedOutEmotions.has(`${sel.core}-${sel.secondary}-${sel.tertiaryName}`)) 
+            .map(sel => ({ 
+                core: sel.core,
+                secondary: sel.secondary,
+                tertiaryName: sel.tertiaryName,
+                definition: sel.definition,
+                originalColor: emotionsData[sel.core]?.color 
+            }));
+        
+        drawEmotionWheel(); 
+
+        selectedTertiaryEmotions = []; 
+        const allTertiarySegments = wheelSvg.querySelectorAll('.emotion-segment[data-level="tertiary"]');
+        
+        currentValidSelectionsData.forEach(selData => {
+            allTertiarySegments.forEach(seg => {
+                if (seg.dataset.coreName === selData.core &&
+                    seg.dataset.secondaryName === selData.secondary &&
+                    seg.dataset.tertiaryName === selData.tertiaryName) {
+                    
+                    if (!grayedOutEmotions.has(`${selData.core}-${selData.secondary}-${selData.tertiaryName}`)) {
+                        seg.classList.add('selected-tertiary');
+                        const baseColor = emotionsData[selData.core]?.color;
+                        if (baseColor) {
+                            seg.style.stroke = adjustColor(baseColor);
+                        }
+                        selectedTertiaryEmotions.push(selData); 
+                    }
+                }
+            });
+        });
+        updateNextStepButtonState();
+    }
+
+
+    function drawEmotionWheel() {
+        wheelSvg.innerHTML = ''; 
+        const numCoreSlices = coreEmotionsOrder.length;
+        const anglePerCoreSlice = (2 * Math.PI) / numCoreSlices;
+
+        coreEmotionsOrder.forEach((coreName, coreIndex) => {
+            const coreEmotion = emotionsData[coreName];
+            if (!coreEmotion) { 
+                console.error(`Data for core emotion "${coreName}" not found.`);
+                return; 
+            }
+            const coreStartAngle = coreIndex * anglePerCoreSlice - (Math.PI / 2); 
+            const coreEndAngle = (coreIndex + 1) * anglePerCoreSlice - (Math.PI / 2);
+
+            drawSegment(coreName, coreEmotion.definition, coreEmotion.color, centerX, centerY, 0, radiusCore, coreStartAngle, coreEndAngle, 'core', coreName);
+
+            if (!coreEmotion.secondaryEmotions || coreEmotion.secondaryEmotions.length === 0) {
+                return; 
+            }
+            const numSecondarySlices = coreEmotion.secondaryEmotions.length;
+            const anglePerSecondarySlice = anglePerCoreSlice / numSecondarySlices;
+
+            coreEmotion.secondaryEmotions.forEach((secEmotion, secIndex) => {
+                const secStartAngle = coreStartAngle + (secIndex * anglePerSecondarySlice);
+                const secEndAngle = coreStartAngle + ((secIndex + 1) * anglePerSecondarySlice);
+                
+                drawSegment(secEmotion.name, secEmotion.definition, secEmotion.color || coreEmotion.color, centerX, centerY, radiusCore, radiusSecondary, secStartAngle, secEndAngle, 'secondary', coreName, secEmotion.name);
+                
+                if (!secEmotion.tertiaryEmotions || secEmotion.tertiaryEmotions.length === 0) {
+                    return; 
+                }
+                const numTertiarySlices = secEmotion.tertiaryEmotions.length;
+                const anglePerTertiarySlice = anglePerSecondarySlice / numTertiarySlices;
+
+                secEmotion.tertiaryEmotions.forEach((tertEmotion, tertIndex) => {
+                    const tertStartAngle = secStartAngle + (tertIndex * anglePerTertiarySlice);
+                    const tertEndAngle = secStartAngle + ((tertIndex + 1) * anglePerTertiarySlice);
+                    
+                    drawSegment(tertEmotion.name, tertEmotion.definition, coreEmotion.color, centerX, centerY, radiusSecondary, radiusTertiary, tertStartAngle, tertEndAngle, 'tertiary', coreName, secEmotion.name, tertEmotion.name);
+                });
+            });
+        });
+        updateAllEmotionCountsOnWheel(); 
+    }
+
+    function drawSegment(name, definition, color, cx, cy, rInner, rOuter, startAngle, endAngle, level, coreName, secondaryName = null, tertiaryName = null) {
+        const x1Inner = cx + rInner * Math.cos(startAngle);
+        const y1Inner = cy + rInner * Math.sin(startAngle);
+        const x2Outer = cx + rOuter * Math.cos(startAngle);
+        const y2Outer = cy + rOuter * Math.sin(startAngle);
+        const x3Outer = cx + rOuter * Math.cos(endAngle);
+        const y3Outer = cy + rOuter * Math.sin(endAngle);
+        const x4Inner = cx + rInner * Math.cos(endAngle);
+        const y4Inner = cy + rInner * Math.sin(endAngle);
+
+        const largeArcFlagOuter = (endAngle - startAngle) > Math.PI ? 1 : 0;
+        const largeArcFlagInner = (endAngle - startAngle) > Math.PI ? 1 : 0;
+
+        if (Math.abs(startAngle - endAngle) < 0.0001) {
+            return; 
+        }
+
+        const pathData = `M ${x1Inner} ${y1Inner} L ${x2Outer} ${y2Outer} A ${rOuter} ${rOuter} 0 ${largeArcFlagOuter} 1 ${x3Outer} ${y3Outer} L ${x4Inner} ${y4Inner} A ${rInner} ${rInner} 0 ${largeArcFlagInner} 0 ${x1Inner} ${y1Inner} Z`;
+        
+        const segmentPath = document.createElementNS(svgNS, 'path');
+        segmentPath.setAttribute('d', pathData);
+        segmentPath.setAttribute('fill', color);
+        segmentPath.classList.add('emotion-segment');
+        segmentPath.dataset.level = level;
+        segmentPath.dataset.name = name;
+        segmentPath.dataset.definition = definition;
+        segmentPath.dataset.coreName = coreName;
+        if (secondaryName) segmentPath.dataset.secondaryName = secondaryName;
+        if (tertiaryName) segmentPath.dataset.tertiaryName = tertiaryName;
+        
+        const emotionKey = level === 'core' ? coreName :
+                           level === 'secondary' ? `${coreName}-${secondaryName}` :
+                           `${coreName}-${secondaryName}-${tertiaryName}`;
+        segmentPath.dataset.emotionKey = emotionKey; 
+
+        wheelSvg.appendChild(segmentPath);
+
+        const midAngle = startAngle + (endAngle - startAngle) / 2;
+        const textRadius = rInner + (rOuter - rInner) * 0.5; 
+        const textX = cx + textRadius * Math.cos(midAngle);
+        const textY = cy + textRadius * Math.sin(midAngle);
+        
+        let textRotation = midAngle * (180 / Math.PI);
+        let normalizedTextRotation = (textRotation % 360 + 360) % 360; 
+        if (normalizedTextRotation > 90 && normalizedTextRotation < 270) {
+            textRotation += 180; 
+        }
+
+        const textElement = document.createElementNS(svgNS, 'text');
+        textElement.setAttribute('x', textX);
+        textElement.setAttribute('y', textY);
+        textElement.setAttribute('transform', `rotate(${textRotation}, ${textX}, ${textY})`);
+        textElement.classList.add('emotion-text-label', `${level}-text`);
+        textElement.dataset.originalName = name; 
+        textElement.dataset.level = level;
+        textElement.dataset.nameKey = emotionKey; 
+        textElement.textContent = name; 
+        wheelSvg.appendChild(textElement);
+
+        if (isEffectivelyGrayedOut(level, coreName, secondaryName, tertiaryName)) {
+            segmentPath.classList.add('grayed-out');
+            textElement.classList.add('grayed-out');
+        }
+
+        segmentPath.addEventListener('mouseover', (event) => {
+            clearTimeout(hoverDebounceTimeout); 
+            const targetSegment = event.currentTarget;
+            const currentName = targetSegment.dataset.name;
+            const currentDefinition = targetSegment.dataset.definition;
+
+            hoverDebounceTimeout = setTimeout(() => {
+                hoverEmotionNameEl.textContent = currentName;                                         
+                hoverEmotionDefinitionEl.textContent = currentDefinition || "No definition available.";
+                lastValidHoverDetails = { name: currentName, definition: currentDefinition };
+            }, HOVER_DEBOUNCE_DELAY);
+        });
+
+        segmentPath.addEventListener('mouseout', () => {
+            clearTimeout(hoverDebounceTimeout);
+        });
+
+        segmentPath.addEventListener('contextmenu', (event) => {
+            event.preventDefault(); 
+            toggleGrayOutState(level, coreName, secondaryName, tertiaryName);
+        });
+
+        if (level === 'core' || level === 'secondary') {
+            segmentPath.addEventListener('click', () => {
+                if (isEffectivelyGrayedOut(level, coreName, secondaryName)) { 
+                    const childrenToUngray = getTertiaryChildrenKeys(level, coreName, secondaryName);
+                    childrenToUngray.forEach(key => grayedOutEmotions.delete(key));
+                    redrawWheelWithCurrentStates();
+                }
+            });
+        }
+
+
+        if (level === 'tertiary') {
+            segmentPath.addEventListener('click', (event) => {
+                toggleTertiarySelection(coreName, secondaryName, tertiaryName, definition, segmentPath);
+            });
+        }
+    }
+    
+    function toggleGrayOutState(level, coreName, secondaryName, tertiaryName) {
+        let keysToToggle = [];
+        let currentlyAllChildrenGrayed = true;
+
+        if (level === 'core') {
+            keysToToggle = getTertiaryChildrenKeys('core', coreName);
+            if (keysToToggle.length > 0) {
+                 currentlyAllChildrenGrayed = keysToToggle.every(key => grayedOutEmotions.has(key));
+            } else { 
+                return;
+            }
+        } else if (level === 'secondary') {
+            keysToToggle = getTertiaryChildrenKeys('secondary', coreName, secondaryName);
+             if (keysToToggle.length > 0) {
+                currentlyAllChildrenGrayed = keysToToggle.every(key => grayedOutEmotions.has(key));
+            } else {
+                return;
+            }
+        } else { // tertiary
+            const tertiaryKey = `${coreName}-${secondaryName}-${tertiaryName}`;
+            keysToToggle.push(tertiaryKey);
+            currentlyAllChildrenGrayed = grayedOutEmotions.has(tertiaryKey); 
+        }
+
+        if (currentlyAllChildrenGrayed) { 
+            keysToToggle.forEach(key => grayedOutEmotions.delete(key));
+        } else { 
+            keysToToggle.forEach(key => grayedOutEmotions.add(key));
+        }
+        redrawWheelWithCurrentStates();
+    }
+
+    wheelSvg.addEventListener('mousemove', (event) => {
+        if (event.target === wheelSvg) {
+            clearTimeout(hoverDebounceTimeout); 
+            if (lastValidHoverDetails) {
+                hoverEmotionNameEl.textContent = lastValidHoverDetails.name;
+                hoverEmotionDefinitionEl.textContent = lastValidHoverDetails.definition;
+            } else {
+                hoverEmotionNameEl.textContent = "Hover over the wheel";
+                hoverEmotionDefinitionEl.textContent = "Details will appear here.";
+            }
+        }
+    });
+
+    wheelSvg.addEventListener('mouseleave', () => {
+        clearTimeout(hoverDebounceTimeout); 
+        hoverEmotionNameEl.textContent = "Hover over the wheel";
+        hoverEmotionDefinitionEl.textContent = "Details will appear here.";
+        lastValidHoverDetails = null; 
+    });
+    
+    function toggleTertiarySelection(coreN, secN, tertN, def, segmentElement) {
+        const emotionKey = `${coreN}-${secN}-${tertN}`;
+        
+        if (grayedOutEmotions.has(emotionKey)) {
+            grayedOutEmotions.delete(emotionKey); 
+            redrawWheelWithCurrentStates(); 
+            return; 
+        }
+        
+        const index = selectedTertiaryEmotions.findIndex(e => `${e.core}-${e.secondary}-${e.tertiaryName}` === emotionKey);
+        if (index > -1) {
+            selectedTertiaryEmotions.splice(index, 1);
+            segmentElement.style.stroke = ''; 
+        } else {
+            selectedTertiaryEmotions.push({ core: coreN, secondary: secN, tertiaryName: tertN, definition: def });
+            const baseColor = emotionsData[coreN]?.color;
+            if (baseColor) {
+                segmentElement.style.stroke = adjustColor(baseColor);
+            }
+        }
+        segmentElement.classList.toggle('selected-tertiary', index === -1); 
+        
+        updateAllEmotionCountsOnWheel();
+        updateNextStepButtonState();
+    }
+
+    function updateAllEmotionCountsOnWheel() {
+        const textElements = wheelSvg.querySelectorAll('.emotion-text-label');
+        textElements.forEach(textEl => {
+            const level = textEl.dataset.level;
+            const originalName = textEl.dataset.originalName;
+            const nameKey = textEl.dataset.nameKey; 
+            let count = 0;
+
+            if (level === 'core') {
+                const coreData = emotionsData[originalName]; 
+                if (coreData && coreData.secondaryEmotions) {
+                    coreData.secondaryEmotions.forEach(sec => {
+                        if (sec.tertiaryEmotions) {
+                            sec.tertiaryEmotions.forEach(tert => {
+                                const tertiaryKey = `${originalName}-${sec.name}-${tert.name}`;
+                                if (selectedTertiaryEmotions.some(sel => `${sel.core}-${sel.secondary}-${sel.tertiaryName}` === tertiaryKey) &&
+                                    !grayedOutEmotions.has(tertiaryKey)) {
+                                    count++;
+                                }
+                            });
+                        }
+                    });
+                }
+            } else if (level === 'secondary') {
+                const [coreForSec, secNameForCount] = nameKey.split('-');
+                const coreData = emotionsData[coreForSec];
+                const secData = coreData?.secondaryEmotions.find(s => s.name === secNameForCount);
+                if (secData && secData.tertiaryEmotions) {
+                    secData.tertiaryEmotions.forEach(tert => {
+                        const tertiaryKey = `${coreForSec}-${secNameForCount}-${tert.name}`;
+                         if (selectedTertiaryEmotions.some(sel => `${sel.core}-${sel.secondary}-${sel.tertiaryName}` === tertiaryKey) &&
+                             !grayedOutEmotions.has(tertiaryKey)) {
+                            count++;
+                        }
+                    });
+                }
+            }
+            
+            if (count > 0 && (level === 'core' || level === 'secondary')) {
+                textEl.textContent = `${originalName} (${count})`; 
+                textEl.classList.add('with-count'); 
+            } else {
+                textEl.textContent = originalName; 
+                textEl.classList.remove('with-count');
+            }
+        });
+    }
+    
+    resetAllTextButton.addEventListener('click', () => { 
+        grayedOutEmotions.clear();
+        selectedTertiaryEmotions = []; 
+        redrawWheelWithCurrentStates(); 
+    });
+
+
+    function updateNextStepButtonState() {
+        const activeSelections = selectedTertiaryEmotions.filter(
+            sel => !grayedOutEmotions.has(`${sel.core}-${sel.secondary}-${sel.tertiaryName}`)
+        );
+        if (activeSelections.length > 0) {
+            nextStepButton.disabled = false;
+            nextStepButton.textContent = `Review ${activeSelections.length} Feeling${activeSelections.length > 1 ? 's' : ''}`;
+        } else {
+            nextStepButton.disabled = true;
+            nextStepButton.textContent = 'Review Selected Feelings';
+        }
+    }
+
+    nextStepButton.addEventListener('click', () => {
+         const activeSelections = selectedTertiaryEmotions.filter(
+            sel => !grayedOutEmotions.has(`${sel.core}-${sel.secondary}-${sel.tertiaryName}`)
+        );
+        if (activeSelections.length > 0) displaySummaryView(activeSelections);
+    });
+
+    function displaySummaryView(activeSelectionsToDisplay) { 
+        mainContentArea.classList.add('hidden');
+        summaryView.classList.remove('hidden');
+        headerSubtitle.textContent = "Reflect on your selected feelings.";
+        selectedSummaryList.innerHTML = '';
+        activeSelectionsToDisplay.forEach(emo => { 
+            const li = document.createElement('li');
+            li.className = 'p-2 bg-white rounded shadow-sm text-sm';
+            const coreColor = emotionsData[emo.core].color;
+            li.innerHTML = `<span class="font-semibold" style="color: ${getDarkerColor(coreColor)};">${emo.core}</span> &rarr; <span class="font-medium">${emo.secondary}</span> &rarr; <strong>${emo.tertiaryName}</strong> <span class="text-xs text-slate-500 italic block sm:inline sm:ml-2">(${emo.definition})</span>`;
+            selectedSummaryList.appendChild(li);
+        });
+        journalPromptsList.innerHTML = '';
+        generateJournalPrompts(activeSelectionsToDisplay).forEach(prompt => { 
+            const li = document.createElement('li');
+            li.textContent = prompt;
+            journalPromptsList.appendChild(li);
+        });
+    }
+
+    function getDarkerColor(hexColor) {
+        if (!hexColor || !hexColor.startsWith("#")) return "#333333";
+        let r = parseInt(hexColor.slice(1, 3), 16), g = parseInt(hexColor.slice(3, 5), 16), b = parseInt(hexColor.slice(5, 7), 16);
+        r = Math.max(0, Math.floor(r * 0.6)); g = Math.max(0, Math.floor(g * 0.6)); b = Math.max(0, Math.floor(b * 0.6));
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+
+    function generateJournalPrompts(emotions) {
+        const prompts = ["When did I first notice these feelings today/recently?", "What situations or thoughts might be connected to these feelings?", "How are these feelings showing up in my body or my actions?", "Are there any patterns to when I experience these emotions?", "What might these feelings be telling me about what I need or value?", "If one of these feelings had a voice, what would it say?", "What's one small, kind way I can respond to these feelings right now?"];
+        if (emotions.some(e => e.core === "Happy")) prompts.push("What elements contributed to this happiness? How can I invite more of this?");
+        if (emotions.some(e => e.core === "Sad")) prompts.push("What does this sadness need from me? Is there anything to grieve or release?");
+        if (emotions.some(e => e.core === "Angry")) prompts.push("Is this anger a signal about a boundary? What's underneath it?");
+        if (emotions.some(e => e.core === "Fearful")) prompts.push("What is this fear trying to protect me from? What resources can help me feel safer?");
+        return prompts;
+    }
+
+    backToWheelButton.addEventListener('click', () => {
+        mainContentArea.classList.remove('hidden');
+        summaryView.classList.add('hidden');
+        headerSubtitle.textContent = "Hover over an emotion to see details. Click an outer emotion to select. Right-click to gray out.";
+        redrawWheelWithCurrentStates(); 
+    });
+
+    geminiChatButton.addEventListener('click', () => {
+        alert("Gemini chat integration is a future feature. For now, consider discussing your feelings with a trusted person or using a traditional journal.");
+    });
+
+    drawEmotionWheel();
+    </script>
+</body>
+</html>
