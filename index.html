@@ -31,12 +31,13 @@
             text-anchor: middle;
             dominant-baseline: central; 
         }
-        .core-text { font-size: 12.5px; font-weight: bold; } 
-        .secondary-text { font-size: 9px; } 
-        .tertiary-text { font-size: 7.5px; } 
+        /* Font sizes adjusted for new layout */
+        .core-text { font-size: 13px; font-weight: bold; } 
+        .secondary-text { font-size: 8.5px; } 
+        .tertiary-text { font-size: 7px; } 
 
-        .core-text.with-count { font-size: 11.5px; }
-        .secondary-text.with-count { font-size: 8.5px; } 
+        .core-text.with-count { font-size: 12px; }
+        .secondary-text.with-count { font-size: 8px; } 
 
         .emotion-segment.grayed-out {
             opacity: 0.3 !important; 
@@ -54,17 +55,19 @@
             cursor: not-allowed;
         }
         
-        #reset-all-text-button { 
-            /* Tailwind classes are applied directly in HTML */
+        #gemini-prompt-content {
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+            min-height: 80px; 
         }
 
 
         @media (max-width: 768px) { 
-            .core-text { font-size: 9px; } 
-            .secondary-text { font-size: 7.5px; } 
-            .tertiary-text { font-size: 6.5px; } 
-            .core-text.with-count { font-size: 8.5px; }
-            .secondary-text.with-count { font-size: 7px; } 
+            .core-text { font-size: 9.5px; } 
+            .secondary-text { font-size: 7px; } 
+            .tertiary-text { font-size: 6px; } 
+            .core-text.with-count { font-size: 9px; }
+            .secondary-text.with-count { font-size: 6.5px; } 
 
             #emotion-wheel-container { min-height: 280px; } 
             #hover-info-panel h2 { font-size: 1.05rem; }
@@ -106,12 +109,32 @@
             <div id="selected-summary-list" class="mb-6 space-y-2"></div>
             <h3 class="text-xl font-semibold text-sky-600 mb-3">Journal Prompts to Consider</h3>
             <ul id="journal-prompts-list" class="list-disc list-inside text-slate-700 space-y-1 mb-6"></ul>
+            
             <div class="mt-6 pt-6 border-t border-slate-200">
-                <h3 class="text-xl font-semibold text-sky-600 mb-3">Further Exploration</h3>
+                <h3 class="text-xl font-semibold text-sky-600 mb-3">Further Exploration with AI</h3>
+                <p class="text-slate-600 mb-2 text-sm">You can copy the prompt below, then click the button to open Gemini in a new tab and paste your prompt into the chat.</p>
+                
+                <div class="bg-slate-100 rounded-lg shadow-sm overflow-hidden mb-3">
+                    <div class="flex justify-between items-center p-2 bg-slate-200 border-b border-slate-300">
+                        <span class="font-semibold text-xs text-slate-600 uppercase tracking-wider">Generated Prompt</span>
+                        <button id="copy-gemini-prompt-button" title="Copy prompt" class="p-1.5 hover:bg-slate-300 rounded-md transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard text-slate-600" viewBox="0 0 16 16">
+                                <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                                <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="gemini-prompt-content" class="p-3 bg-white text-sm text-slate-800 min-h-[80px] max-h-40 overflow-y-auto">
+                        {/* Prompt will be populated here by JS */}
+                    </div>
+                </div>
+                <div id="copy-feedback" class="text-xs text-green-600 h-4 mb-2 text-right"></div> 
+                
                 <button id="gemini-chat-button" class="w-full md:w-auto bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg shadow transition-colors duration-150">
-                    Chat with Gemini (Placeholder)
+                    Open Gemini (new tab)
                 </button>
             </div>
+
             <button id="back-to-wheel-button" class="mt-8 w-full bg-slate-500 hover:bg-slate-600 text-white font-semibold py-2.5 px-4 rounded-lg shadow transition-colors duration-150">
                 Back to Emotion Wheel
             </button>
@@ -119,85 +142,85 @@
         
         <footer class="text-center mt-8 md:mt-10 text-xs md:text-sm text-slate-400">
             <p>Emotion data inspired by various psychological models. Text rendering on wheel is approximate.</p>
-            <p class="mt-1">Code developed with assistance from Google's AI, Gemini. Let's be real, Gemini wrote all of this (except for literally this sentence).</p> 
+            <p class="mt-1">Code developed with assistance from Google's AI, Gemini.</p> 
         </footer>
     </div>
 
     <script>
-    // Emotion data based on the provided image
-    const emotionsData = { // Ensure this is the only declaration of emotionsData
+    // Emotion data with revised definitions
+    const emotionsData = {
         "Happy": { 
-            color: "#FDEE6C", definition: "Feeling or showing pleasure or contentment.",
+            color: "#FDEE6C", definition: "Feeling pleasant, joyful, or content.",
             secondaryEmotions: [
-                { name: "Playful", color: "#FEF59A", definition: "Fond of games and amusement.", tertiaryEmotions: [{ name: "Aroused", definition: "Stirred to action or excitement." }, { name: "Cheeky", definition: "Impudently humorous." }] },
-                { name: "Content", color: "#FEF59A", definition: "In a state of peaceful happiness.", tertiaryEmotions: [{ name: "Free", definition: "Not under control of another." }, { name: "Joyful", definition: "Feeling great pleasure." }] },
-                { name: "Interested", color: "#FEF59A", definition: "Showing curiosity about something.", tertiaryEmotions: [{ name: "Curious", definition: "Eager to know or learn." }, { name: "Inquisitive", definition: "Given to inquiry." }] },
-                { name: "Proud", color: "#FEF59A", definition: "Deep pleasure from achievements.", tertiaryEmotions: [{ name: "Successful", definition: "Accomplishing an aim." }, { name: "Confident", definition: "Feeling self-assurance." }] },
-                { name: "Accepted", color: "#FEF59A", definition: "Seen as suitable or normal.", tertiaryEmotions: [{ name: "Respected", definition: "Admired deeply." }, { name: "Valued", definition: "Considered important." }] },
-                { name: "Powerful", color: "#FEF59A", definition: "Having great power or strength.", tertiaryEmotions: [{ name: "Courageous", definition: "Not deterred by danger." }, { name: "Creative", definition: "Imaginative and inventive." }] },
-                { name: "Peaceful", color: "#FEF59A", definition: "Free from disturbance.", tertiaryEmotions: [{ name: "Loving", definition: "Feeling deep affection." }, { name: "Thankful", definition: "Expressing gratitude." }] },
-                { name: "Trusting", color: "#FEF59A", definition: "Believing in reliability.", tertiaryEmotions: [{ name: "Sensitive", definition: "Quick to detect changes." }, { name: "Intimate", definition: "Close familiarity." }] },
-                { name: "Optimistic", color: "#FEF59A", definition: "Hopeful about the future.", tertiaryEmotions: [{ name: "Hopeful", definition: "Feeling expectation." }, { name: "Inspired", definition: "Mentally stimulated." }] },
+                { name: "Playful", color: "#FEF59A", definition: "Lighthearted and full of fun.", tertiaryEmotions: [{ name: "Aroused", definition: "Energized and stirred up." }, { name: "Cheeky", definition: "Playfully bold or mischievous." }] },
+                { name: "Content", color: "#FEF59A", definition: "Peacefully satisfied and at ease.", tertiaryEmotions: [{ name: "Free", definition: "Feeling unrestricted and liberated." }, { name: "Joyful", definition: "Expressing great happiness." }] },
+                { name: "Interested", color: "#FEF59A", definition: "Curious and wanting to know more.", tertiaryEmotions: [{ name: "Curious", definition: "Eager to learn or explore." }, { name: "Inquisitive", definition: "Asking many questions." }] },
+                { name: "Proud", color: "#FEF59A", definition: "Pleased with achievements.", tertiaryEmotions: [{ name: "Successful", definition: "Feeling accomplished." }, { name: "Confident", definition: "Sure of oneself." }] },
+                { name: "Accepted", color: "#FEF59A", definition: "Feeling welcomed and included.", tertiaryEmotions: [{ name: "Respected", definition: "Admired and valued by others." }, { name: "Valued", definition: "Feeling important or appreciated." }] },
+                { name: "Powerful", color: "#FEF59A", definition: "Feeling strong and capable.", tertiaryEmotions: [{ name: "Courageous", definition: "Brave in the face of fear." }, { name: "Creative", definition: "Imaginative and inventive." }] },
+                { name: "Peaceful", color: "#FEF59A", definition: "Calm and free from disturbance.", tertiaryEmotions: [{ name: "Loving", definition: "Feeling or showing deep affection." }, { name: "Thankful", definition: "Grateful and appreciative." }] },
+                { name: "Trusting", color: "#FEF59A", definition: "Believing in someone's reliability.", tertiaryEmotions: [{ name: "Sensitive", definition: "Aware of others' feelings." }, { name: "Intimate", definition: "Feeling close and connected." }] },
+                { name: "Optimistic", color: "#FEF59A", definition: "Hopeful about the future.", tertiaryEmotions: [{ name: "Hopeful", definition: "Expecting good things." }, { name: "Inspired", definition: "Feeling motivated and uplifted." }] },
             ]
         },
         "Surprised": { 
-            color: "#C59CD4", definition: "Feeling astonishment or wonder.",
+            color: "#C59CD4", definition: "Feeling of astonishment or wonder.",
             secondaryEmotions: [
-                { name: "Startled", color: "#D8B9E2", definition: "Sudden shock or alarm.", tertiaryEmotions: [{ name: "Shocked", definition: "Disturbed by an event." }, { name: "Dismayed", definition: "Distress from unexpected." }] },
-                { name: "Confused", color: "#D8B9E2", definition: "Unable to think clearly.", tertiaryEmotions: [{ name: "Disillusioned", definition: "Disappointment in something." }, { name: "Perplexed", definition: "Completely baffled." }] },
-                { name: "Amazed", color: "#D8B9E2", definition: "Greatly surprised.", tertiaryEmotions: [{ name: "Astonished", definition: "Greatly surprised or impressed." }, { name: "Awe", definition: "Reverential respect." }] },
-                { name: "Excited", color: "#D8B9E2", definition: "Very enthusiastic and eager.", tertiaryEmotions: [{ name: "Eager", definition: "Strongly wanting to do." }, { name: "Energetic", definition: "Showing great activity." }] },
+                { name: "Startled", color: "#D8B9E2", definition: "Sudden shock or alarm.", tertiaryEmotions: [{ name: "Shocked", definition: "Suddenly upset or disturbed." }, { name: "Dismayed", definition: "Distressed by something unexpected." }] },
+                { name: "Confused", color: "#D8B9E2", definition: "Unable to think clearly.", tertiaryEmotions: [{ name: "Disillusioned", definition: "Disappointed by reality." }, { name: "Perplexed", definition: "Completely baffled or puzzled." }] },
+                { name: "Amazed", color: "#D8B9E2", definition: "Greatly surprised or impressed.", tertiaryEmotions: [{ name: "Astonished", definition: "Overcome with wonder." }, { name: "Awe", definition: "Feeling of deep respect and wonder." }] },
+                { name: "Excited", color: "#D8B9E2", definition: "Eager and enthusiastic.", tertiaryEmotions: [{ name: "Eager", definition: "Strongly wanting something." }, { name: "Energetic", definition: "Full of energy and vitality." }] },
             ]
         },
          "Bad": { 
-            color: "#90A6A6", definition: "Feeling generally unwell or negative.", // Lighter Muted Teal/Blue-Gray
+            color: "#90A6A6", definition: "Feeling generally unwell or negative.", 
             secondaryEmotions: [
-                { name: "Bored", color: "#B7CCCC", definition: "Weary from lack of interest.", tertiaryEmotions: [{ name: "Indifferent", definition: "No particular interest." }, { name: "Apathetic", definition: "Lack of concern." }] },
-                { name: "Busy", color: "#B7CCCC", definition: "Having a great deal to do.", tertiaryEmotions: [{ name: "Pressured", definition: "Feeling coerced." }, { name: "Rushed", definition: "Done too quickly." }] },
-                { name: "Stressed", color: "#B7CCCC", definition: "Feeling worried or unable to relax.", tertiaryEmotions: [{ name: "Overwhelmed", definition: "Burdened with too much." }, { name: "Out of control", definition: "No longer manageable." }] },
-                { name: "Tired", color: "#B7CCCC", definition: "In need of sleep or rest.", tertiaryEmotions: [{ name: "Sleepy", definition: "Ready to fall asleep." }, { name: "Unfocussed", definition: "Not concentrating." }] },
+                { name: "Bored", color: "#B7CCCC", definition: "Uninterested and weary.", tertiaryEmotions: [{ name: "Indifferent", definition: "Lacking interest or concern." }, { name: "Apathetic", definition: "Showing no enthusiasm or concern." }] },
+                { name: "Busy", color: "#B7CCCC", definition: "Having a lot to do.", tertiaryEmotions: [{ name: "Pressured", definition: "Feeling forced to do something." }, { name: "Rushed", definition: "Feeling hurried or acting too quickly." }] },
+                { name: "Stressed", color: "#B7CCCC", definition: "Worried and unable to relax.", tertiaryEmotions: [{ name: "Overwhelmed", definition: "Feeling buried by too much." }, { name: "Out of control", definition: "Feeling things are unmanageable." }] },
+                { name: "Tired", color: "#B7CCCC", definition: "Needing rest or sleep.", tertiaryEmotions: [{ name: "Sleepy", definition: "Ready to fall asleep." }, { name: "Unfocussed", definition: "Unable to concentrate." }] },
             ]
         },
         "Fearful": { 
             color: "#FBB86F", definition: "Feeling afraid or apprehensive.",
             secondaryEmotions: [
-                { name: "Scared", color: "#FCCDA1", definition: "Afraid; filled with fear.", tertiaryEmotions: [{ name: "Helpless", definition: "Unable to defend oneself." }, { name: "Frightened", definition: "Afraid or anxious." }] },
-                { name: "Anxious", color: "#FCCDA1", definition: "Experiencing worry or unease.", tertiaryEmotions: [{ name: "Overwhelmed", definition: "Feeling buried." }, { name: "Worried", definition: "Anxious about problems." }] },
-                { name: "Insecure", color: "#FCCDA1", definition: "Not confident or assured.", tertiaryEmotions: [{ name: "Inadequate", definition: "Lacking quality." }, { name: "Inferior", definition: "Lower in rank or status." }] },
-                { name: "Weak", color: "#FCCDA1", definition: "Lacking strength.", tertiaryEmotions: [{ name: "Worthless", definition: "Without value." }, { name: "Insignificant", definition: "Too small to matter." }] },
-                { name: "Rejected", color: "#FCCDA1", definition: "Dismissed as inadequate.", tertiaryEmotions: [{ name: "Excluded", definition: "Denied access." }, { name: "Persecuted", definition: "Subjected to hostility." }] },
-                { name: "Threatened", color: "#FCCDA1", definition: "Feeling vulnerable to harm.", tertiaryEmotions: [{ name: "Nervous", definition: "Easily agitated." }, { name: "Exposed", definition: "Made vulnerable." }] },
+                { name: "Scared", color: "#FCCDA1", definition: "Afraid or filled with fear.", tertiaryEmotions: [{ name: "Helpless", definition: "Unable to act or defend oneself." }, { name: "Frightened", definition: "Suddenly afraid or anxious." }] },
+                { name: "Anxious", color: "#FCCDA1", definition: "Worried, uneasy, or nervous.", tertiaryEmotions: [{ name: "Overwhelmed", definition: "Feeling buried by worries." }, { name: "Worried", definition: "Troubled about potential problems." }] },
+                { name: "Insecure", color: "#FCCDA1", definition: "Not confident; uncertain.", tertiaryEmotions: [{ name: "Inadequate", definition: "Feeling not good enough." }, { name: "Inferior", definition: "Feeling less than others." }] },
+                { name: "Weak", color: "#FCCDA1", definition: "Lacking strength or power.", tertiaryEmotions: [{ name: "Worthless", definition: "Feeling without value." }, { name: "Insignificant", definition: "Feeling unimportant." }] },
+                { name: "Rejected", color: "#FCCDA1", definition: "Feeling dismissed or unwanted.", tertiaryEmotions: [{ name: "Excluded", definition: "Feeling left out." }, { name: "Persecuted", definition: "Feeling unfairly targeted." }] },
+                { name: "Threatened", color: "#FCCDA1", definition: "Feeling at risk or in danger.", tertiaryEmotions: [{ name: "Nervous", definition: "Easily agitated or alarmed." }, { name: "Exposed", definition: "Feeling vulnerable and unprotected." }] },
             ]
         },
         "Angry": { 
-            color: "#EE7B6E", definition: "Having a strong feeling of annoyance.",
+            color: "#EE7B6E", definition: "Feeling strong annoyance or displeasure.",
             secondaryEmotions: [
-                { name: "Let down", color: "#F4A79F", definition: "Disappointed by someone.", tertiaryEmotions: [{ name: "Betrayed", definition: "Deceived by someone trusted." }, { name: "Resentful", definition: "Bitterness at unfairness." }] },
-                { name: "Humiliated", color: "#F4A79F", definition: "Made to feel ashamed.", tertiaryEmotions: [{ name: "Disrespected", definition: "Not treated with respect." }, { name: "Ridiculed", definition: "Subjected to mockery." }] },
-                { name: "Bitter", color: "#F4A79F", definition: "Angry due to bad experiences.", tertiaryEmotions: [{ name: "Indignant", definition: "Anger at unfairness." }, { name: "Violated", definition: "Treated with disrespect." }] },
-                { name: "Mad", color: "#F4A79F", definition: "Very angry.", tertiaryEmotions: [{ name: "Furious", definition: "Extremely angry." }, { name: "Jealous", definition: "Envious of others." }] },
-                { name: "Aggressive", color: "#F4A79F", definition: "Ready to attack or confront.", tertiaryEmotions: [{ name: "Provoked", definition: "Stirred to anger." }, { name: "Hostile", definition: "Unfriendly; antagonistic." }] },
-                { name: "Frustrated", color: "#F4A79F", definition: "Annoyed by inability to achieve.", tertiaryEmotions: [{ name: "Infuriated", definition: "Made extremely angry." }, { name: "Annoyed", definition: "Slightly angry." }] },
+                { name: "Let down", color: "#F4A79F", definition: "Disappointed by unmet expectations.", tertiaryEmotions: [{ name: "Betrayed", definition: "Feeling deceived by someone trusted." }, { name: "Resentful", definition: "Bitter about unfair treatment." }] },
+                { name: "Humiliated", color: "#F4A79F", definition: "Feeling ashamed and foolish.", tertiaryEmotions: [{ name: "Disrespected", definition: "Feeling a lack of respect." }, { name: "Ridiculed", definition: "Feeling mocked or made fun of." }] },
+                { name: "Bitter", color: "#F4A79F", definition: "Angry due to unjust treatment.", tertiaryEmotions: [{ name: "Indignant", definition: "Anger at perceived unfairness." }, { name: "Violated", definition: "Feeling one's rights were disregarded." }] },
+                { name: "Mad", color: "#F4A79F", definition: "Very angry or annoyed.", tertiaryEmotions: [{ name: "Furious", definition: "Extremely angry and enraged." }, { name: "Jealous", definition: "Envious of others' advantages." }] },
+                { name: "Aggressive", color: "#F4A79F", definition: "Ready to attack or confront.", tertiaryEmotions: [{ name: "Provoked", definition: "Stirred to anger or action." }, { name: "Hostile", definition: "Unfriendly and antagonistic." }] },
+                { name: "Frustrated", color: "#F4A79F", definition: "Annoyed by being blocked or hindered.", tertiaryEmotions: [{ name: "Infuriated", definition: "Made extremely angry." }, { name: "Annoyed", definition: "Slightly angry or irritated." }] },
             ]
         },
         "Disgusted": { 
             color: "#73B9A1", definition: "Feeling revulsion or strong disapproval.",
             secondaryEmotions: [
-                { name: "Disapproving", color: "#9DCFBD", definition: "Expressing unfavorable opinion.", tertiaryEmotions: [{ name: "Judgmental", definition: "Overly critical." }, { name: "Critical", definition: "Expressing adverse comments." }, { name: "Sceptical", definition: "Not easily convinced." }, { name: "Dismissive", definition: "Feeling something is unworthy."}] },
-                { name: "Disappointed", color: "#9DCFBD", definition: "Sad by failure of hopes.", tertiaryEmotions: [{ name: "Appalled", definition: "Greatly dismayed." }, { name: "Embarrassed", definition: "Feeling self-conscious." }] }, 
-                { name: "Awful", color: "#9DCFBD", definition: "Very bad or unpleasant.", tertiaryEmotions: [{ name: "Nauseated", definition: "Feeling about to vomit." }, { name: "Revolted", definition: "Feeling intense disgust." }] },
-                { name: "Repelled", color: "#9DCFBD", definition: "Driven back or away.", tertiaryEmotions: [{ name: "Horrified", definition: "Filled with horror." }, { name: "Detestable", definition: "Deserving intense dislike." }, { name: "Hesitant", definition: "Tentative or unsure." }] },
+                { name: "Disapproving", color: "#9DCFBD", definition: "Having an unfavorable opinion.", tertiaryEmotions: [{ name: "Judgmental", definition: "Being overly critical." }, { name: "Critical", definition: "Finding fault easily." }, { name: "Sceptical", definition: "Doubtful or not easily convinced." }, { name: "Dismissive", definition: "Feeling something is unworthy."}] },
+                { name: "Disappointed", color: "#9DCFBD", definition: "Sadness from unmet hopes.", tertiaryEmotions: [{ name: "Appalled", definition: "Greatly dismayed or horrified." }, { name: "Embarrassed", definition: "Feeling awkward or self-conscious." }] }, 
+                { name: "Awful", color: "#9DCFBD", definition: "Feeling something is very bad.", tertiaryEmotions: [{ name: "Nauseated", definition: "Feeling sick to the stomach." }, { name: "Revolted", definition: "Feeling intense disgust." }] },
+                { name: "Repelled", color: "#9DCFBD", definition: "Feeling driven away by something.", tertiaryEmotions: [{ name: "Horrified", definition: "Filled with intense fear or shock." }, { name: "Detestable", definition: "Deserving intense dislike." }, { name: "Hesitant", definition: "Unsure or slow to act." }] },
             ]
         },
         "Sad": { 
             color: "#6CA9DE", definition: "Feeling or showing sorrow or unhappiness.",
             secondaryEmotions: [
-                { name: "Hurt", color: "#9CC2E6", definition: "Feeling emotional pain.", tertiaryEmotions: [{ name: "Embarrassed", definition: "Feeling self-conscious." }, { name: "Disappointed", definition: "Sad by unmet hopes." }] },
-                { name: "Depressed", color: "#9CC2E6", definition: "In a state of unhappiness.", tertiaryEmotions: [{ name: "Inferior", definition: "Lower in rank." }, { name: "Empty", definition: "Containing nothing." }] },
-                { name: "Guilty", color: "#9CC2E6", definition: "Responsible for wrongdoing.", tertiaryEmotions: [{ name: "Ashamed", definition: "Embarrassed by actions." }, { name: "Remorseful", definition: "Deep regret for wrong." }] },
-                { name: "Despair", color: "#9CC2E6", definition: "The complete loss or absence of hope.", tertiaryEmotions: [{ name: "Grief", definition: "Deep sorrow from loss." }, { name: "Powerless", definition: "Without ability to prevent." }] }, 
-                { name: "Vulnerable", color: "#9CC2E6", definition: "Susceptible to harm.", tertiaryEmotions: [{ name: "Fragile", definition: "Easily broken or damaged." }, { name: "Victimised", definition: "Treated cruelly." }] },
-                { name: "Lonely", color: "#9CC2E6", definition: "Sad from lack of company.", tertiaryEmotions: [{ name: "Isolated", definition: "Minimal contact with others." }, { name: "Abandoned", definition: "Having been deserted." }] },
+                { name: "Hurt", color: "#9CC2E6", definition: "Feeling emotional pain.", tertiaryEmotions: [{ name: "Embarrassed", definition: "Feeling awkward or self-conscious (reused)." }, { name: "Disappointed", definition: "Sad by unmet hopes (reused)." }] },
+                { name: "Depressed", color: "#9CC2E6", definition: "A state of general unhappiness.", tertiaryEmotions: [{ name: "Inferior", definition: "Feeling less than others (reused)." }, { name: "Empty", definition: "Feeling a void or lack." }] },
+                { name: "Guilty", color: "#9CC2E6", definition: "Feeling responsible for a wrong.", tertiaryEmotions: [{ name: "Ashamed", definition: "Embarrassed by one's actions." }, { name: "Remorseful", definition: "Deep regret for wrongdoing." }] },
+                { name: "Despair", color: "#9CC2E6", definition: "The complete loss of hope.", tertiaryEmotions: [{ name: "Grief", definition: "Deep sorrow, especially from loss." }, { name: "Powerless", definition: "Feeling unable to act or change things." }] }, 
+                { name: "Vulnerable", color: "#9CC2E6", definition: "Feeling open to harm or attack.", tertiaryEmotions: [{ name: "Fragile", definition: "Easily broken or upset." }, { name: "Victimised", definition: "Feeling treated cruelly." }] },
+                { name: "Lonely", color: "#9CC2E6", definition: "Sadness from lack of company.", tertiaryEmotions: [{ name: "Isolated", definition: "Feeling separate from others." }, { name: "Abandoned", definition: "Feeling left behind or deserted." }] },
             ]
         }
     };
@@ -208,8 +231,9 @@
     const wheelSvg = document.getElementById('emotion-wheel');
     const centerX = 300; 
     const centerY = 300;
-    const radiusCore = 90;       
-    const radiusSecondary = 190; 
+    // Adjusted Radii for thicker core, while maintaining overall size
+    const radiusCore = 110;       
+    const radiusSecondary = 200; 
     const radiusTertiary = 290;  
     
     const hoverEmotionNameEl = document.getElementById('hover-emotion-name');
@@ -222,6 +246,9 @@
     const journalPromptsList = document.getElementById('journal-prompts-list');
     const backToWheelButton = document.getElementById('back-to-wheel-button');
     const geminiChatButton = document.getElementById('gemini-chat-button');
+    const geminiPromptContent = document.getElementById('gemini-prompt-content'); 
+    const copyGeminiPromptButton = document.getElementById('copy-gemini-prompt-button'); 
+    const copyFeedback = document.getElementById('copy-feedback'); 
     const headerSubtitle = document.getElementById('header-subtitle');
 
     let selectedTertiaryEmotions = [];
@@ -352,45 +379,57 @@
 
     function drawEmotionWheel() {
         wheelSvg.innerHTML = ''; 
-        const numCoreSlices = coreEmotionsOrder.length;
-        const anglePerCoreSlice = (2 * Math.PI) / numCoreSlices;
-
-        coreEmotionsOrder.forEach((coreName, coreIndex) => {
+        
+        // Calculate total tertiary emotions for equal sizing
+        let totalTertiaryEmotions = 0;
+        coreEmotionsOrder.forEach(coreName => {
             const coreEmotion = emotionsData[coreName];
-            if (!coreEmotion) { 
-                console.error(`Data for core emotion "${coreName}" not found.`);
-                return; 
-            }
-            const coreStartAngle = coreIndex * anglePerCoreSlice - (Math.PI / 2); 
-            const coreEndAngle = (coreIndex + 1) * anglePerCoreSlice - (Math.PI / 2);
-
-            drawSegment(coreName, coreEmotion.definition, coreEmotion.color, centerX, centerY, 0, radiusCore, coreStartAngle, coreEndAngle, 'core', coreName);
-
-            if (!coreEmotion.secondaryEmotions || coreEmotion.secondaryEmotions.length === 0) {
-                return; 
-            }
-            const numSecondarySlices = coreEmotion.secondaryEmotions.length;
-            const anglePerSecondarySlice = anglePerCoreSlice / numSecondarySlices;
-
-            coreEmotion.secondaryEmotions.forEach((secEmotion, secIndex) => {
-                const secStartAngle = coreStartAngle + (secIndex * anglePerSecondarySlice);
-                const secEndAngle = coreStartAngle + ((secIndex + 1) * anglePerSecondarySlice);
-                
-                drawSegment(secEmotion.name, secEmotion.definition, secEmotion.color || coreEmotion.color, centerX, centerY, radiusCore, radiusSecondary, secStartAngle, secEndAngle, 'secondary', coreName, secEmotion.name);
-                
-                if (!secEmotion.tertiaryEmotions || secEmotion.tertiaryEmotions.length === 0) {
-                    return; 
-                }
-                const numTertiarySlices = secEmotion.tertiaryEmotions.length;
-                const anglePerTertiarySlice = anglePerSecondarySlice / numTertiarySlices;
-
-                secEmotion.tertiaryEmotions.forEach((tertEmotion, tertIndex) => {
-                    const tertStartAngle = secStartAngle + (tertIndex * anglePerTertiarySlice);
-                    const tertEndAngle = secStartAngle + ((tertIndex + 1) * anglePerTertiarySlice);
-                    
-                    drawSegment(tertEmotion.name, tertEmotion.definition, coreEmotion.color, centerX, centerY, radiusSecondary, radiusTertiary, tertStartAngle, tertEndAngle, 'tertiary', coreName, secEmotion.name, tertEmotion.name);
+            if (coreEmotion && coreEmotion.secondaryEmotions) {
+                coreEmotion.secondaryEmotions.forEach(secEmotion => {
+                    if (secEmotion.tertiaryEmotions) {
+                        totalTertiaryEmotions += secEmotion.tertiaryEmotions.length;
+                    }
                 });
-            });
+            }
+        });
+        const anglePerTertiarySegment = totalTertiaryEmotions > 0 ? (2 * Math.PI) / totalTertiaryEmotions : 0;
+        
+        let currentGlobalAngle = - (Math.PI / 2); // Start at the top
+
+        coreEmotionsOrder.forEach((coreName) => {
+            const coreEmotion = emotionsData[coreName];
+            if (!coreEmotion) return;
+
+            const coreStartAngle = currentGlobalAngle;
+            let coreAngleSpan = 0;
+
+            if (coreEmotion.secondaryEmotions) {
+                coreEmotion.secondaryEmotions.forEach((secEmotion) => {
+                    const secStartAngle = currentGlobalAngle;
+                    let secAngleSpan = 0;
+
+                    if (secEmotion.tertiaryEmotions) {
+                        secEmotion.tertiaryEmotions.forEach((tertEmotion) => {
+                            const tertStartAngle = currentGlobalAngle;
+                            const tertEndAngle = currentGlobalAngle + anglePerTertiarySegment;
+                            drawSegment(tertEmotion.name, tertEmotion.definition, coreEmotion.color, centerX, centerY, radiusSecondary, radiusTertiary, tertStartAngle, tertEndAngle, 'tertiary', coreName, secEmotion.name, tertEmotion.name);
+                            currentGlobalAngle = tertEndAngle;
+                            secAngleSpan += anglePerTertiarySegment;
+                        });
+                    }
+                    if (secAngleSpan > 0) { // Only draw secondary if it has tertiary children (and thus a span)
+                       drawSegment(secEmotion.name, secEmotion.definition, secEmotion.color || coreEmotion.color, centerX, centerY, radiusCore, radiusSecondary, secStartAngle, secStartAngle + secAngleSpan, 'secondary', coreName, secEmotion.name);
+                    }
+                    coreAngleSpan += secAngleSpan;
+                });
+            }
+             if (coreAngleSpan > 0) { // Only draw core if it has children (and thus a span)
+                drawSegment(coreName, coreEmotion.definition, coreEmotion.color, centerX, centerY, 0, radiusCore, coreStartAngle, coreStartAngle + coreAngleSpan, 'core', coreName);
+            } else { // Handle core emotions with no children - give them a default small slice or log
+                // This case might occur if a core emotion has no secondary/tertiary defined
+                // For now, we'll let it be skipped if coreAngleSpan is 0
+                // console.warn(`Core emotion ${coreName} has no children to determine its span.`);
+            }
         });
         updateAllEmotionCountsOnWheel(); 
     }
@@ -409,6 +448,7 @@
         const largeArcFlagInner = (endAngle - startAngle) > Math.PI ? 1 : 0;
 
         if (Math.abs(startAngle - endAngle) < 0.0001) {
+            // console.warn(`Skipping segment draw for ${name} due to zero angle span.`);
             return; 
         }
 
@@ -670,7 +710,49 @@
             li.textContent = prompt;
             journalPromptsList.appendChild(li);
         });
+
+        // Generate and display prompt for Gemini
+        let promptText = "I've identified that I'm feeling the following emotions: ";
+        if (activeSelectionsToDisplay.length > 0) {
+            promptText += activeSelectionsToDisplay.map(emo => `${emo.tertiaryName} (related to ${emo.secondary}, under ${emo.core})`).join(', ') + ".";
+        } else {
+            promptText = "I'm using an emotion wheel and would like to explore some feelings.";
+        }
+        promptText += " Can you help me understand these feelings a bit more or provide some reflections?";
+        geminiPromptContent.textContent = promptText; // Use textContent for div
+        copyFeedback.textContent = ''; 
     }
+
+    copyGeminiPromptButton.addEventListener('click', () => {
+        const textToCopy = geminiPromptContent.textContent;
+        const tempTextArea = document.createElement('textarea');
+        tempTextArea.value = textToCopy;
+        document.body.appendChild(tempTextArea);
+        tempTextArea.select();
+        tempTextArea.setSelectionRange(0, 99999); // For mobile devices
+
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                copyFeedback.textContent = 'Prompt copied!';
+                setTimeout(() => { copyFeedback.textContent = ''; }, 2000);
+            } else {
+                copyFeedback.textContent = 'Copy failed. Please copy manually.';
+                 setTimeout(() => { copyFeedback.textContent = ''; }, 3000);
+            }
+        } catch (err) {
+            copyFeedback.textContent = 'Copy failed. Please copy manually.';
+            setTimeout(() => { copyFeedback.textContent = ''; }, 3000);
+            console.error('Fallback: Oops, unable to copy', err);
+        }
+        document.body.removeChild(tempTextArea);
+        window.getSelection().removeAllRanges(); 
+    });
+
+    geminiChatButton.addEventListener('click', () => {
+        const geminiUrl = `https://gemini.google.com/app`; // No prompt prefill here
+        window.open(geminiUrl, '_blank');
+    });
 
     function getDarkerColor(hexColor) {
         if (!hexColor || !hexColor.startsWith("#")) return "#333333";
@@ -693,10 +775,6 @@
         summaryView.classList.add('hidden');
         headerSubtitle.textContent = "Hover over an emotion to see details. Click an outer emotion to select. Right-click to gray out.";
         redrawWheelWithCurrentStates(); 
-    });
-
-    geminiChatButton.addEventListener('click', () => {
-        alert("Gemini chat integration is a future feature. For now, consider discussing your feelings with a trusted person or using a traditional journal.");
     });
 
     drawEmotionWheel();
